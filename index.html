@@ -15,6 +15,7 @@
     
 </head>
 <body class="bg-light">
+    <!-- [Previous HTML remains unchanged until the script section] -->
     <div class="container-fluid py-4">
         <div class="row justify-content-center">
             <div class="col-md-11">
@@ -76,6 +77,7 @@
         const CSV_TEMPLATE = {
             fields: ['ISBN', 'NEW', '9781399183413', 'The Death of Dora Black', 'Limp', 'Gloss', '234', '156', '19', '342', '60', 'Holmen Book Cream 60 gsm', 'N'],
             defaultValues: {
+                'ISBN': 'ISBN',  // Changed to static 'ISBN'
                 'NEW': 'NEW',
                 'Limp': 'Limp',
                 'Gloss': 'Gloss',
@@ -97,37 +99,56 @@
             try {
                 showStatus('Processing file...', 'info');
                 
-                const arrayBuffer = await file.arrayBuffer();
-                const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-                const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                const jsonData = XLSX.utils.sheet_to_json(worksheet);
+                // Create a FileReader for Safari compatibility
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    try {
+                        const data = new Uint8Array(e.target.result);
+                        const workbook = XLSX.read(data, { type: 'array' });
+                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-                // Transform data
-                convertedData = jsonData.map(row => {
-                    const newRow = {...CSV_TEMPLATE.defaultValues};
-                    
-                    // Map basic fields
-                    newRow['ISBN'] = row['Limp ISBN'] || '';
-                    newRow['The Death of Dora Black'] = row['Title'] || '';
-                    newRow['19'] = row['Spine Size'] || '';
-                    newRow['342'] = row['Page_Extent'] || '';
-                    newRow['9781399183413'] = row['Limp ISBN'] || '';
+                        // Transform data
+                        convertedData = jsonData.map(row => {
+                            const newRow = {...CSV_TEMPLATE.defaultValues};
+                            
+                            // Map fields but keep ISBN static
+                            newRow['9781399183413'] = row['Limp ISBN'] || '';
+                            newRow['The Death of Dora Black'] = row['Title'] || '';
+                            newRow['19'] = row['Spine Size'] || '';
+                            newRow['342'] = row['Page_Extent'] || '';
 
-                    // Apply width rule: if 155 then make 156
-                    newRow['156'] = row['Trim_Width'] === '155' ? '156' : row['Trim_Width'] || '156';
+                            // Apply width rule: if 155 then make 156
+                            newRow['156'] = row['Trim_Width'] === '155' ? '156' : row['Trim_Width'] || '156';
 
-                    // Apply height rule: if 233 then make 234
-                    newRow['234'] = row['Trim_Height'] === '233' ? '234' : row['Trim_Height'] || '234';
+                            // Apply height rule: if 233 then make 234
+                            newRow['234'] = row['Trim_Height'] === '233' ? '234' : row['Trim_Height'] || '234';
 
-                    return newRow;
-                });
+                            return newRow;
+                        });
 
-                updatePreviewTable();
-                showStatus('Data loaded successfully!', 'success');
-                enableButtons(true);
+                        updatePreviewTable();
+                        showStatus('Data loaded successfully!', 'success');
+                        enableButtons(true);
+                    } catch (error) {
+                        console.error('Processing error:', error);
+                        showStatus('Error processing Excel file. Please check the file format.', 'danger');
+                        enableButtons(false);
+                    }
+                };
+
+                reader.onerror = function() {
+                    showStatus('Error reading file. Please try again.', 'danger');
+                    enableButtons(false);
+                };
+
+                // Read the file as an array buffer
+                reader.readAsArrayBuffer(file);
+                
             } catch (error) {
-                console.error('Processing error:', error);
-                showStatus('Error processing file. Please check the console for details.', 'danger');
+                console.error('File handling error:', error);
+                showStatus('Error handling file. Please try again.', 'danger');
                 enableButtons(false);
             }
         }
@@ -144,7 +165,7 @@
                             <i class="fas fa-trash"></i>
                         </button>
                     </td>
-                    <td>${row['ISBN']}</td>
+                    <td>${row['9781399183413']}</td>
                     <td>${row['The Death of Dora Black']}</td>
                     <td>${row['234']}</td>
                     <td>${row['156']}</td>
