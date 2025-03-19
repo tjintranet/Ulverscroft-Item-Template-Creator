@@ -92,66 +92,61 @@
         // Enable file input handling
         document.getElementById('excelFile').addEventListener('change', handleFileSelect);
 
-        async function handleFileSelect(e) {
-            const file = e.target.files[0];
-            if (!file) return;
+        function sanitizeValue(value) {
+        return typeof value === 'string' ? value.replace(/,/g, '') : value;
+    }
 
-            try {
-                showStatus('Processing file...', 'info');
-                
-                // Create a FileReader for Safari compatibility
-                const reader = new FileReader();
-                
-                reader.onload = function(e) {
-                    try {
-                        const data = new Uint8Array(e.target.result);
-                        const workbook = XLSX.read(data, { type: 'array' });
-                        const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-                        const jsonData = XLSX.utils.sheet_to_json(worksheet);
+    async function handleFileSelect(e) {
+        const file = e.target.files[0];
+        if (!file) return;
 
-                        // Transform data
-                        convertedData = jsonData.map(row => {
-                            const newRow = {...CSV_TEMPLATE.defaultValues};
-                            
-                            // Map fields but keep ISBN static
-                            newRow['9781399183413'] = row['Limp ISBN'] || '';
-                            newRow['The Death of Dora Black'] = row['Title'] || '';
-                            newRow['19'] = row['Spine Size'] || '';
-                            newRow['342'] = row['Page_Extent'] || '';
+        try {
+            showStatus('Processing file...', 'info');
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const jsonData = XLSX.utils.sheet_to_json(worksheet);
 
-                            // Apply width rule: if 155 then make 156
-                            newRow['156'] = row['Trim_Width'] === '155' ? '156' : row['Trim_Width'] || '156';
+                    // Transform and sanitize only the Title column
+                    convertedData = jsonData.map(row => {
+                        const newRow = { ...CSV_TEMPLATE.defaultValues };
 
-                            // Apply height rule: if 233 then make 234
-                            newRow['234'] = row['Trim_Height'] === '233' ? '234' : row['Trim_Height'] || '234';
+                        newRow['9781399183413'] = row['Limp ISBN'] || '';
+                        newRow['The Death of Dora Black'] = sanitizeValue(row['Title'] || ''); // Sanitize only Title
+                        newRow['19'] = row['Spine Size'] || '';
+                        newRow['342'] = row['Page_Extent'] || '';
+                        newRow['156'] = row['Trim_Width'] === '155' ? '156' : row['Trim_Width'] || '156';
+                        newRow['234'] = row['Trim_Height'] === '233' ? '234' : row['Trim_Height'] || '234';
+                        
+                        return newRow;
+                    });
 
-                            return newRow;
-                        });
-
-                        updatePreviewTable();
-                        showStatus('Data loaded successfully!', 'success');
-                        enableButtons(true);
-                    } catch (error) {
-                        console.error('Processing error:', error);
-                        showStatus('Error processing Excel file. Please check the file format.', 'danger');
-                        enableButtons(false);
-                    }
-                };
-
-                reader.onerror = function() {
-                    showStatus('Error reading file. Please try again.', 'danger');
+                    updatePreviewTable();
+                    showStatus('Data loaded successfully!', 'success');
+                    enableButtons(true);
+                } catch (error) {
+                    console.error('Processing error:', error);
+                    showStatus('Error processing Excel file. Please check the file format.', 'danger');
                     enableButtons(false);
-                };
+                }
+            };
 
-                // Read the file as an array buffer
-                reader.readAsArrayBuffer(file);
-                
-            } catch (error) {
-                console.error('File handling error:', error);
-                showStatus('Error handling file. Please try again.', 'danger');
+            reader.onerror = function() {
+                showStatus('Error reading file. Please try again.', 'danger');
                 enableButtons(false);
-            }
+            };
+
+            reader.readAsArrayBuffer(file);
+        } catch (error) {
+            console.error('File handling error:', error);
+            showStatus('Error handling file. Please try again.', 'danger');
+            enableButtons(false);
         }
+    }
 
         function updatePreviewTable() {
             const tbody = document.getElementById('previewBody');
