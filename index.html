@@ -148,6 +148,23 @@
         }
     }
 
+    function clearAll() {
+        convertedData = [];
+        updatePreviewTable();
+        document.getElementById('excelFile').value = '';
+        showStatus('All data cleared', 'info');
+        enableButtons(false);
+        
+        setTimeout(() => {
+            const statusDiv = document.getElementById('status');
+            if (statusDiv) {
+                statusDiv.textContent = '';  // Clear the message
+                statusDiv.style.display = 'none';  // Hide the element
+            }
+        }, 3000);
+    }
+
+
         function updatePreviewTable() {
             const tbody = document.getElementById('previewBody');
             tbody.innerHTML = '';
@@ -179,12 +196,20 @@
         }
 
         function clearAll() {
-            convertedData = [];
-            updatePreviewTable();
-            document.getElementById('excelFile').value = '';
-            showStatus('All data cleared', 'info');
-            enableButtons(false);
-        }
+        convertedData = [];
+        updatePreviewTable();
+        document.getElementById('excelFile').value = '';
+        showStatus('All data cleared', 'info');
+        enableButtons(false);
+        
+        setTimeout(() => {
+            const statusDiv = document.getElementById('status');
+            if (statusDiv) {
+                statusDiv.textContent = '';  // Clear the message
+                statusDiv.style.display = 'none';  // Hide the element
+            }
+        }, 3000);
+    }
 
         function downloadCsv() {
             if (convertedData.length === 0) {
